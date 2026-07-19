@@ -29,6 +29,7 @@ Pełny opis projektu: [`ICARUS.md`](./ICARUS.md).
 - ✅ `./gradlew bootRun` — aplikacja startuje, Tomcat na 8080, Java 25 potwierdzona
 - ✅ Weryfikacja `/actuator/health` → `{"status":"UP"}`, grupy `liveness`/`readiness`
   (gotowe pod K8s probes w Fazie 6)
+- ✅ GeoPoint (value object, record, walidacja zakresów + NaN/Infinity, testy)
 
 ### Kontrola wersji
 - ✅ `git init`, `.gitignore` zweryfikowany (build/, .gradle, .idea wykluczone)
