@@ -8,7 +8,7 @@ osiągi) z nowoczesnym backendem, architekturą mikroserwisową, infrastrukturą
 
 > Ten dokument to **całościowy pakiet projektu** — wizja, stack, architektura i roadmapa.
 > Bieżący postęp prac śledzony jest osobno w [`PROGRESS.md`](./PROGRESS.md).
- 
+
 ---
 
 ## 1. Czym jest projekt
@@ -38,6 +38,7 @@ dodania dronów posłuży jako realny test rozszerzalności architektury.
   głęboko przemyślana infrastruktura wokół niego.
 - **Budowa przyrostowa** — wąskie, działające MVP najpierw, potem rozbudowa. Każda technologia
   wchodzi, **gdy realnie rozwiązuje problem, który już istnieje** — nie „na zapas".
+
 ## 3. Stack i technologie
 
 | Obszar | Wybór i uzasadnienie |
@@ -79,6 +80,7 @@ Neo4j jako ambitne rozszerzenie. PGVector = Postgres w nowej roli, bez osobnej b
 4. **aircraft-performance** — modele osiągów per typ statku (wzorzec Strategy); tu wraca inżynieria autora
 5. **risk-ai** — ocena ryzyka lotu, asystent AI (+ RAG na późniejszym etapie)
 6. **auth** — uwierzytelnianie, autoryzacja
+
 ### Konwencja nazewnictwa modułów
 
 Krótkie nazwy (`flight-planning`, `weather`, …) bez prefiksu `icarus-`. Repozytorium dostarcza
@@ -131,6 +133,7 @@ i optymalizacja dokładane świadomie warstwami — najpierw budujesz, co chroni
   kosztów. Nowe: chmura, IaC, pipeline CI/CD.
 - **Faza 8+ — rozszerzanie rdzenia.** Drugi typ statku (business jet), potem dron/BSP — test
   rozszerzalności architektury.
+
 ## 7. Pięć modułów zaawansowanych — gdzie i kiedy
 
 Moduły **rozbudowujące szerokość** (nowe serwisy domenowe — późne fazy):
@@ -143,7 +146,8 @@ Moduły **rozbudowujące szerokość** (nowe serwisy domenowe — późne fazy):
   kombinatoryczna, metaheurystyki (algorytmy genetyczne, symulowane wyżarzanie), ewentualnie
   OR-Tools. Konsumuje silnik trajektorii. Po silniku trajektorii (surrogate model przyspiesza
   pętlę optymalizacji).
-  Moduły **rozbudowujące dojrzałość** (warstwy/wzorce — rozwijane przyrostowo, nie „na koniec"):
+
+Moduły **rozbudowujące dojrzałość** (warstwy/wzorce — rozwijane przyrostowo, nie „na koniec"):
 
 - **Observability** — OpenTelemetry (warstwa przekrojowa). Distributed tracing, metryki,
   korelacja logów, dashboardy (Prometheus + Grafana + Jaeger/Tempo). **Zaczynać wcześnie (od
@@ -156,6 +160,7 @@ Moduły **rozbudowujące szerokość** (nowe serwisy domenowe — późne fazy):
   aktualnego stanu; CQRS rozdziela zapis i odczyt. Punktowo na **flight-planning** (audyt planów
   lotów ma sens). Przy/po Fazie 6 (spina się z Kafką). **Uwaga: łatwo przeinżynierować —
   stosować punktowo.**
+
 ## 8. Bonusy / świadomie odłożone rozszerzenia
 
 - **Real-time tracking** (na koniec) — strumień pozycji: Kafka + Cassandra (wide-column, szeregi
@@ -166,6 +171,7 @@ Moduły **rozbudowujące szerokość** (nowe serwisy domenowe — późne fazy):
 - **Micronaut/Quarkus** (Faza 6+) — przepisanie jednego serwisu dla porównania czasu startu
   i pamięci (+ GraalVM Native).
 - **Neo4j** — routing oparty o graf.
+
 ## 9. Wzorce projektowe — stały wątek nauki
 
 **Zasada nadrzędna: wzorzec przychodzi z problemu, nie problem z wzorca.** Dobry wzorzec jest
@@ -196,7 +202,7 @@ bazy w kontenerach, Kafka, Ollama). Dane lotnicze/pogodowe w dużej części pub
 lub kilka–kilkanaście zł/mies. przez API. Sekurak (bezpieczeństwo), Udemy/Pluralsight (Spring
 Cloud, K8s, chmura) — kupowane pod aktualny etap, ze świadomością że materiały bywają jeszcze pod
 SB 3.x.
- 
+
 ---
 
 ## Metadane projektu

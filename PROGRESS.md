@@ -17,57 +17,71 @@ Pełny opis projektu: [`ICARUS.md`](./ICARUS.md).
 - ✅ SDKMAN! + Java 25 Temurin
 - ✅ Gradle (przez wrapper, `./gradlew`)
 - ✅ IntelliJ IDEA Ultimate
+- ✅ Python 3 (systemowy) — do generowania danych referencyjnych w testach
 
 ### Projekt i struktura
-- ✅ Wygenerowany skeleton przez Spring Initializr
-    - Gradle Kotlin DSL, Java 25, Spring Boot 4.1.0 (stabilny, nie SNAPSHOT), Jar, YAML
-    - Group `io.github.firestart3rr`, Artifact `icarus`
-    - Dependencies: **Spring Web (webmvc), Actuator, Validation** — świadome minimum, bez bazy
-- ✅ Rozbiór `build.gradle.kts` linia po linii (zrozumienie zamiast kopiowania z dokumentacji)
-    - zrozumiany mechanizm: `io.spring.dependency-management` + BOM → brak numerów wersji
-    - zrozumiana modularyzacja SB4: `-webmvc`, `-actuator`, `-validation` + startery `-test`
-- ✅ `./gradlew bootRun` — aplikacja startuje, Tomcat na 8080, Java 25 potwierdzona
-- ✅ Weryfikacja `/actuator/health` → `{"status":"UP"}`, grupy `liveness`/`readiness`
-  (gotowe pod K8s probes w Fazie 6)
-- ✅ GeoPoint (value object, record, walidacja zakresów + NaN/Infinity, testy)
+- ✅ Skeleton przez Spring Initializr (Gradle Kotlin DSL, Java 25, Spring Boot 4.1.0, Jar, YAML)
+  - Dependencies: Spring Web (webmvc), Actuator, Validation — świadome minimum, bez bazy
+- ✅ Rozbiór `build.gradle.kts` linia po linii (zrozumienie zamiast kopiowania)
+  - mechanizm `io.spring.dependency-management` + BOM → brak numerów wersji
+  - modularyzacja SB4: startery `-webmvc`/`-actuator`/`-validation` + odpowiedniki `-test`
+- ✅ `bootRun` działa; `/actuator/health` → `UP`, grupy `liveness`/`readiness` (gotowe pod K8s)
 
 ### Kontrola wersji
-- ✅ `git init`, `.gitignore` zweryfikowany (build/, .gradle, .idea wykluczone)
-- ✅ Tożsamość Git (`user.email`, `user.name`)
-- ✅ Klucz SSH ed25519 wygenerowany i dodany do GitHub
-- ✅ Repo `icarus` na GitHub (puste, bez auto-inicjalizacji), pierwszy push
-- ✅ Commit struktury monorepo + push
+- ✅ Git + `.gitignore` zweryfikowany, tożsamość Git
+- ✅ Klucz SSH ed25519 → GitHub; repo `icarus`, pierwszy push
+- ✅ Regularne commity per zamknięty kawałek pracy
 
 ### Transformacja w monorepo
-- ✅ Utworzenie modułu `flight-planning/`, przeniesienie `src/` (Git wykrył rename → historia zachowana)
+- ✅ Moduł `flight-planning/`, przeniesienie `src/` (Git rename → historia zachowana)
 - ✅ `settings.gradle.kts` → `include("flight-planning")`
-- ✅ **Kluczowa lekcja Maven→Gradle:** blok `dependencies` parenta NIE jest dziedziczony przez
-  moduły; każdy moduł ma własny, izolowany classpath
-- ✅ Rozdział odpowiedzialności: parent chudy (`group`, `version`, `repositories`); moduł ma
-  Spring Boot plugin + startery + toolchain Java 25 (Szkoła A — jawność przy jednym module)
+- ✅ **Lekcja Maven→Gradle:** blok `dependencies` parenta NIE jest dziedziczony; każdy moduł
+  ma własny, izolowany classpath
+- ✅ Rozdział: parent chudy (`group`, `version`, `repositories`); moduł ma Spring Boot plugin
+  + startery + toolchain Java 25
 - ✅ Usunięta duplikacja JUnita (startery `-test` dostarczają JUnit spójny ze Spring Boot BOM)
-- ✅ `./gradlew :flight-planning:build` — zielony
 
-### Decyzje projektowe
-- ✅ **Great-circle: haversine (kula) na start.** Uzasadnienie: biała karta, MVP najpierw;
-  matematyka trywialna (jeden wzór, brak iteracji/przypadków brzegowych) → skupienie na
-  strukturze, nie na algorytmie. Vincenty (elipsoida) świadomie odłożone jako przyszłe
-  udokładnienie, gdy platforma nabierze realizmu.
+### Kod domenowy i obliczeniowy
+- ✅ **`GeoPoint`** (pakiet `domain`) — value object jako `record`
+  - uzasadnienie record: obiekt-wartość (tożsamość = zawartość, niemienny, `equals` po polach),
+    a NIE „bo przenosi dane"
+  - walidacja niezmienników w compact constructorze (zakresy lat/lon, `IllegalArgumentException`)
+  - kolejność pól `(latitude, longitude)` — zgodna z konwencją geograficzną
+  - warunek `!(w zakresie)` odrzuca też `NaN` i `Infinity` (własność porównań z NaN)
+  - testy: poprawne, brzegowe (±90/±180), poza zakresem, NaN, nieskończoności
+- ✅ **`GeodeticConstants`** (pakiet `domain`) — `EARTH_RADIUS_METERS = 6371008.8`
+  (średni promień arytmetyczny WGS84); klasa final, konstruktor prywatny
+- ✅ **`HaversineDistanceCalculator`** (pakiet `distance`) — `@Service`, bezstanowy
+  - świadomie BEZ interfejsu (jedna implementacja; interfejs + Strategy dopiero przy Karneyu)
+  - bezstanowość = thread-safe z definicji (ważne pod wielowątkowość Fazy 1)
+  - clamp `a` do [0,1] — zabezpieczenie przed `NaN` z błędu zaokrągleń float
+  - `Math.atan2(√a, √(1−a))` — stabilniejsze niż `asin`
+- ✅ **Testy kalkulatora** — mocne, oparte na właściwościach:
+  - niezmienniki: zero dla identycznych punktów, symetria d(A,B)=d(B,A)
+  - **wartości analityczne** (dowodliwe: π·R, π/2·R) — ćwiartki i pół obwodu, tolerancja 0,1 m
+  - **Golden Master** — trasy (WAW→LON, JFK→CDG) policzone niezależnie w Pythonie tym samym
+    modelem i R; zgodność Java↔Python do **0,0001 m** → dowód poprawności implementacji
 
 ### W toku / następne
-- 🔄 **Endpoint great-circle** — decyzja domenowa: haversine (kula) vs Vincenty (elipsoida)
-- ⏳ Struktura pakietów (granice domenowe)
-- ⏳ Kod: model punktu, serwis liczący, kontroler REST
-- ⏳ Walidacja wejścia (zakresy współrzędnych)
-- ⏳ Test jednostkowy serwisu + test kontrolera
+- 🔄 Pakiet `web` — DTO (`RouteRequest`/`RouteResponse`) + `RouteController`
+  - tu wróci Bean Validation (`@Valid`, `@NotNull`, `@Range`) — na DTO, nie w domenie
+  - mapowanie DTO ↔ `GeoPoint` w kontrolerze (warstwa tłumacząca)
 - ⏳ Pierwszy Dockerfile
 
+### Lekcje warte zapamiętania (z tej fazy)
+- **Model domenowy ≠ DTO** — rozdzielamy, bo zmieniają się z różnych powodów (domena vs kontrakt
+  API), nie tylko „bo w różnych pakietach"
+- **Nazwa pakietu = rola w domenie, nie technika** (`distance`, `domain` — nie `utils`/`algorithms`)
+- **Value object → record; encja → klasa** (tożsamość vs zawartość)
+- **LLM: dobry do wyjaśnień pojęć, ZŁY do danych liczbowych** — asystent podał „wartości
+  referencyjne" i etykietę „z PostGIS" bez uruchomienia narzędzia; prawdziwy Golden Master
+  wygenerowany samodzielnie (analitycznie + Python). Rygor wpisany w prompt Profesora (pkt 11).
+
 ### Dług techniczny (świadomie odłożony)
-- 💤 **Convention plugin w `buildSrc`** — wyniesienie wspólnej konfiguracji Gradle
-  (`group`/`version`, Spring Boot plugin, `repositories`). Do zrobienia w **Fazie 1**, gdy dojdzie
-  `weather` i duplikacja stanie się realna.
-- 💤 **Configuration cache** — przyspieszenie buildów. Do włączenia, gdy build zacznie boleć
-  (orientacyjnie Faza 6+).
+- 💤 **Convention plugin w `buildSrc`** — wspólna konfiguracja Gradle (`group`/`version`, Spring
+  Boot plugin, `repositories`). Do zrobienia w **Fazie 1**, gdy dojdzie `weather`.
+- 💤 **Configuration cache** — przyspieszenie buildów. Gdy build zacznie boleć (Faza 6+).
+- 💤 **`public` w `main`** — zostawione konwencjonalnie mimo że Java 25 pozwala usunąć.
 
 ---
 
@@ -84,6 +98,13 @@ Pełny opis projektu: [`ICARUS.md`](./ICARUS.md).
 
 ---
 
-## Decyzje otwarte (do rozstrzygnięcia)
+## Decyzje projektowe (podjęte)
+- ✅ **Great-circle: haversine (kula) na start.** MVP najpierw; matematyka trywialna → skupienie
+  na strukturze. Docelowo **Karney (GeographicLib)** jako udokładnienie — Vincenty przestarzały
+  (problemy zbieżności dla antypodów), Karney to współczesny standard (dokładność nanometrowa).
+- ✅ **Jednostka wewnętrzna: metr (SI).** Konwersja na km/NM/mile = warstwa prezentacji.
+- ✅ **Nazwy modułów krótkie** (`flight-planning`, bez prefiksu `icarus-`).
+
+## Decyzje otwarte
 - 💤 Secure Boot: MOK key signing vs pozostawienie wyłączonego (środowisko OS)
 - 💤 Front: React vs Vue (decyzja po Fazie 3)
