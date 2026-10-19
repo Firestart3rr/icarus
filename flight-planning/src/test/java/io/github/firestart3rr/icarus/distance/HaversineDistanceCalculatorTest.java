@@ -13,6 +13,7 @@ import static io.github.firestart3rr.icarus.domain.GeodeticConstants.EARTH_RADIU
 class HaversineDistanceCalculatorTest {
 
     private static final Offset<Double> TOLERANCE = Offset.offset(0.1);
+    private static final double ROUTE_TOLERANCE = 0.0001;
 
     private final HaversineDistanceCalculator calculator = new HaversineDistanceCalculator();
 
@@ -53,10 +54,10 @@ class HaversineDistanceCalculatorTest {
     @DisplayName("Analytically derived great-circle distances (fractions of circumference)")
     void shouldMatchAnalyticalDistancesForGreatCircleFractions(double lat1, double lon1,
                                      double lat2, double lon2,
-                                     double partOfCircle) {
+                                     double fractionOfHalfCircumference) {
         GeoPoint a = new GeoPoint(lat1, lon1);
         GeoPoint b = new GeoPoint(lat2, lon2);
-        double expectedDistance = Math.PI * partOfCircle * EARTH_RADIUS_METERS;
+        double expectedDistance = Math.PI * fractionOfHalfCircumference * EARTH_RADIUS_METERS;
 
         double distanceBetweenAntipodalPoints = calculator.calculateDistance(a, b);
 
@@ -79,12 +80,9 @@ class HaversineDistanceCalculatorTest {
         GeoPoint point2 = new GeoPoint(lat2, lon2);
 
         double distance = calculator.calculateDistance(point1, point2);
-        System.out.println("Distance: " + distance);
-
-        double acceptableError = 0.0001;
 
         Assertions.assertThat(distance)
                 .as("Consistency with the spherical reference calculations")
-                .isCloseTo(expectedDistance, Offset.offset(acceptableError));
+                .isCloseTo(expectedDistance, Offset.offset(ROUTE_TOLERANCE));
     }
 }
