@@ -48,13 +48,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
         String incidentId = UUID.randomUUID().toString();
 
-        logger.error("Unhandled application error [incidentId: {" + incidentId + "}]");
+        logger.error("Unhandled application error [incidentId: " + incidentId + "]", ex);
 
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
 
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 status,
-                "Internal server error occured, please contact with administrator."
+                "Internal server error occurred, please contact the administrator."
         );
         problemDetail.setType(INTERNAL_SERVER_ERROR_TYPE);
         problemDetail.setTitle("Internal server error");
