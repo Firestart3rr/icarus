@@ -1,0 +1,19 @@
+# Historia repozytorium i metadane Git (często setki MB, unieważniają cache przy każdym commicie)
+.git
+.gitignore
+
+# Lokalne artefakty budowania i cache Gradle z maszyny hosta
+**/build/
+**/.gradle/
+**/out/
+
+# Konfiguracja IDE
+.idea/
+**/*.iml
+.vscode/
+
+# Pliki środowiskowe z sekretami lokalnymi oraz dokumentacja
+.env
+*.md
+Dockerfile
+docker-compose*.yml
