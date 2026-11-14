@@ -28,8 +28,8 @@ dodania dronów posłuży jako realny test rozszerzalności architektury.
   recenzenta kodu i pomocy przy refaktoryzacji — **nie pisze projektu za autora, bez vibe
   codingu.**
 - **Rozmowy (czaty)** = projektowanie, decyzje architektoniczne, nauka koncepcji, omawianie
-  „dlaczego tak". Nowy czat na nową fazę lub większy temat; to podsumowanie służy jako pakiet
-  startowy do wklejenia.
+  „dlaczego tak". Nowy czat na nową fazę lub większy temat; ten dokument razem z `PROGRESS.md`
+  służy jako pakiet startowy do wklejenia.
 - **Claude Code** = praca bezpośrednio przy kodzie w kontekście całego repozytorium (review,
   diagnostyka, refaktoryzacja), w trybie „konsultant, nie wykonawca". Przejście na Claude Code
   do review planowane, gdy kodu przybędzie (orientacyjnie koniec Fazy 1).
@@ -37,7 +37,34 @@ dodania dronów posłuży jako realny test rozszerzalności architektury.
   inżyniera — przy zachowaniu zdrowej proporcji: solidny, nieprzerośnięty kod aplikacyjny +
   głęboko przemyślana infrastruktura wokół niego.
 - **Budowa przyrostowa** — wąskie, działające MVP najpierw, potem rozbudowa. Każda technologia
-  wchodzi, **gdy realnie rozwiązuje problem, który już istnieje** — nie „na zapas".
+  wchodzi, **gdy realnie rozwiązuje problem, który już istnieje** — nie „na zapas". To samo
+  dotyczy abstrakcji i wzorców (np. interfejs dopiero przy drugiej implementacji).
+
+### Metoda pracy (wypracowana w Fazie 0)
+
+- **Projekt przed implementacją.** Najpierw kontrakt i decyzje (z uzasadnieniem), potem kod.
+  Autor pisze, mentor recenzuje; mentor pokazuje trade-offy, autor wybiera.
+- **Przewidywanie przed uruchomieniem.** Przed każdym eksperymentem autor zapisuje, czego się
+  spodziewa (ścieżkę, nie tylko wynik), a potem porównuje z rzeczywistością.
+- **Dowody zamiast domysłów.** Wnioski opierają się na testach, logach, kodach wyjścia
+  i dokumentacji. Brak błędu ani brak wyjścia nie są dowodem.
+- **Dane liczbowe i referencyjne nigdy z LLM.** Wartości do testów pochodzą z wyprowadzeń
+  analitycznych albo z niezależnego uruchomienia (skrypt, narzędzie), które autor wykonuje sam.
+- **Fakty szybkozmienne** (wersje, API, nazwy pakietów w Spring Boot 4, Gradle 9, Java 25)
+  weryfikuje się w oficjalnej dokumentacji, nie z pamięci.
+- **Małe commity** po każdym zamkniętym kawałku pracy; `PROGRESS.md` aktualizowany na koniec
+  etapu; dług techniczny zapisywany jawnie, z fazą, w której ma być spłacony.
+
+### Podział ról między asystentów
+
+| Pytanie dotyczy… | Kto |
+|---|---|
+| matematyki: wzór, dowód, fizyka lotu, geodezja, stabilność numeryczna | Gem „Profesor" |
+| komputera: JVM, sieci, bazy, Docker, algorytmy — wiedza ogólna | Gem „Profesor Informatyki" |
+| ICARUSa: co wybrać, review kodu, następny krok | mentor projektu (czat Claude) |
+
+Zasada: **jeden projekt = jedno miejsce decyzji.** Gemy tłumaczą pojęcia i pokazują mapę opcji;
+decyzje projektowe zapadają w czacie mentora, z pełnym kontekstem.
 
 ## 3. Stack i technologie
 
@@ -47,7 +74,7 @@ dodania dronów posłuży jako realny test rozszerzalności architektury.
 | **Build** | Gradle z **Kotlin DSL** (świadoma zmiana z Mavena — nowa umiejętność, błyszczy w projekcie wielomodułowym, osłuchanie z Kotlinem). Gradle Wrapper (`./gradlew`) od początku. |
 | **Zarządzanie JDK/Gradle** | **SDKMAN!** (nie systemowe apt — mniej niespodzianek z wersjami). |
 | **ORM / dostęp do danych** | Hibernate / Spring Data JPA jako domyślny; Hibernate Spatial przy geometrii PostGIS; jOOQ / natywny SQL do trudniejszych zapytań. Umiejętność rozpoznania, kiedy ORM pomaga, a kiedy przeszkadza. |
-| **Testy** | JUnit 5 + Mockito + AssertJ + Spring Boot Test (integracyjne) + Testcontainers (prawdziwe bazy w Dockerze na czas testów). Świadome rozróżnianie testów jednostkowych i integracyjnych. |
+| **Testy** | JUnit Jupiter (wersja zarządzana przez BOM Spring Boota) + Mockito + AssertJ + Spring Boot Test (testy warstw, np. `@WebMvcTest`, oraz integracyjne) + Testcontainers (prawdziwe bazy w Dockerze na czas testów). Świadome rozróżnianie testów jednostkowych i integracyjnych. |
 | **Konteneryzacja / orkiestracja** | Docker → docker-compose (Fazy 1–5, lokalnie) → Kubernetes (od Fazy 6, lokalnie kind/k3d/minikube, potem managed w chmurze). |
 | **Komunikacja między serwisami** | REST/gRPC (sync) + Kafka/RabbitMQ (async). API Gateway na wejściu. |
 | **AI** | Spring AI; LLM przez API lub lokalnie (Ollama, 0 zł); RAG na PGVector; Python dopiero przy własnym modelu ML — wtedy osobny serwis polyglot w FastAPI. |
@@ -85,8 +112,22 @@ Neo4j jako ambitne rozszerzenie. PGVector = Postgres w nowej roli, bez osobnej b
 
 Krótkie nazwy (`flight-planning`, `weather`, …) bez prefiksu `icarus-`. Repozytorium dostarcza
 kontekst nazwy. Prefiks `icarus/` wchodzi świadomie na innej warstwie — przy tagowaniu obrazów
-Docker i w rejestrach — nie w nazwie modułu Gradle. (Świadome rozdzielenie „nazwy modułu
-w buildzie" od „nazwy artefaktu w rejestrze".)
+Docker i w rejestrach (np. `icarus/flight-planning:<wersja>`) — nie w nazwie modułu Gradle.
+(Świadome rozdzielenie „nazwy modułu w buildzie" od „nazwy artefaktu w rejestrze".)
+
+### Konwencje API (wspólne dla wszystkich serwisów)
+
+Ustalone w Fazie 0 na `flight-planning`; kolejne serwisy stosują je od początku.
+
+- Prefiks z wersją: `/api/v1/...`; JSON w camelCase.
+- DTO (kontrakt) oddzielone od modelu domenowego; kontroler tłumaczy jedno na drugie.
+- Walidacja wejścia na DTO, z **jawnymi komunikatami** (kontrakt nie zależy od locale);
+  niezmienniki domenowe pilnowane dodatkowo w konstruktorach obiektów domeny.
+- Błędy w formacie **RFC 9457 Problem Details** (`application/problem+json`); błędy walidacji
+  jako lista `invalidParams` (`field` z pełną ścieżką, `reason`) — jeden kształt odpowiedzi.
+- **4xx** — klient musi poprawić żądanie; **5xx** — my musimy poprawić kod. Nieobsłużony wyjątek
+  → 500 z ogólnym komunikatem i `incidentId`; szczegóły wyłącznie w logach.
+- Odpowiedzi nie ujawniają wnętrza aplikacji (komunikatów bibliotek, nazw klas).
 
 ## 5. Mapa kompetencji — co gdzie ćwiczone
 
@@ -183,7 +224,8 @@ IoC (zastępuje część wzorców twórczych GoF), Proxy (`@Transactional`, secu
 (klasy `...Template`).
 
 **Pisane samodzielnie, gdy faza zażąda:** Strategy (typ statku, Faza 3 — gwiazda projektu;
-realizowany przez wstrzykiwanie `List`/`Map` beanów), Repository (Faza 1+), Builder (obiekty
+realizowany przez wstrzykiwanie `List`/`Map` beanów; miniaturowa zapowiedź: interfejs
+`DistanceCalculator`, gdy obok haversine pojawi się Karney), Repository (Faza 1+), Builder (obiekty
 domenowe; uwaga na `record`y Javy 25, które zastępują część potrzeb), Factory (często zwija się
 do DI), Observer (Kafka, Faza 6), Command + Event Sourcing/CQRS (Faza 6+), Circuit Breaker
 (odporność), Adapter (integracja zewnętrznych API pogodowych).
