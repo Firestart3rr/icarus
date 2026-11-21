@@ -183,27 +183,32 @@ i błędów zablokowany testami; obraz wieloetapowy, nieuprzywilejowany, z łago
   na punkty bez stacji. Odrzucone: B (sieć dróg IFR — dane trudne, przypisanie stacji METAR
   wymaga struktur przestrzennych z Fazy 2), C (graf syntetyczny — tylko jako dane testowe).
 
-### Etap 0 — Aktualizacja Spring Boot (1a) ⏳
-- ⏳ Najnowszy patch 4.1.x sprawdzony na spring.io; podbity; build i testy zielone
-- ⏳ Przewidywanie przed podbiciem: co zmieni się w `./gradlew :flight-planning:dependencies`
-- ⏳ decyzja: 4.2 (premiera planowana 19.11.2026) — przejście w trakcie fazy czy odłożenie (dług)
+### Etap 0 — Aktualizacja Spring Boot (1a)  ✅
+- ✅ Najnowszy patch 4.1.2 sprawdzony na spring.io; podbity; build i testy zielone
+-💤  4.2 po wydaniu GA;
+- ✅ Przewidywanie przed podbiciem: co zmieni się w `./gradlew :flight-planning:dependencies` - zbyt ogólne; brak zapisu stanu przed zmianą — lekcja na etap 4.
+
 
 ### Etap 1 — Graf i Dijkstra w czystej domenie (1a) ⏳
-- ⏳ decyzja: funkcja kosztu (dystans / dystans + kara za lądowanie / leksykograficznie)
+- ✅ dolne ograniczenie L jako diagnostyka
+- ✅ funkcja kosztu - dystans + c_stop per odcinek, c_stop = V_TAS · Δt_stop, wartości w konfiguracji z zapisanym wyprowadzeniem
 - ⏳ decyzja: kształt wyniku — trasa, brak trasy, start = cel
 - ⏳ Model domenowy węzła, krawędzi i grafu; graf niemutowalny (współdzielony między wątkami)
 - ⏳ Dijkstra na kolejce priorytetowej; bez Springa, bez I/O
 - ⏳ `L`: wyprowadzenie górnego ograniczenia z danych POH C172 (paliwo zużywalne, rezerwa wg
   przepisu, spalanie, prędkość przelotowa) zapisane w repo, z jawnymi założeniami (np. wiatr)
-- ⏳ decyzja: rola dolnego ograniczenia (spójność grafu) — kryterium doboru `L` czy diagnostyka
 - ⏳ Testy na małych grafach liczonych ręcznie: brak trasy, start = cel, remisy, odcinek > `L`
   niedozwolony, trasa dłuższa niż `L` rozbita na międzylądowania
 - ⏳ Niezależna wyrocznia: brute force (wszystkie ścieżki proste) na małych grafach
   — decyzja: testy oparte na właściwościach (nowa zależność) czy ręczne przypadki
 
 ### Etap 2 — Dane lotnisk i endpoint trasy (1a) ⏳
-- ⏳ decyzja: źródło (OurAirports / inne), region, filtr węzłów (typy lotnisk, zamknięte,
-  heliporty, wodne); METAR jako filtr czy atrybut węzła
+- ✅ ograniczony region ponieważ naiwna budowa krawędzi O(n²) nie skaluje się bez struktur przestrzennych z Fazy 2, 
+- ✅ filtr węzłów - lotniska czynne i dostępne dla samolotu lądowego (C172), czyli bez heliportów, baz wodnych i lotnisk zamkniętych.
+- ✅ METAR jako atrybut węzła - realizm (GA ląduje też na lotniskach bez METAR), wymuszona obsługa „brak danych pogodowych”, a do tego budowa grafu nie zależy od listy stacji serwisu weather.
+- ⏳ decyzja: region
+- ⏳ decyzja: źródło (OurAirports / inne)
+- ⏳ pobieranie wyłącznie przez zaufany kanał (TLS bez wyjątków, bez przeklikanych ostrzeżeń) — dotyczy też skryptu snapshotu.
 - ⏳ Snapshot danych w repo + skrypt, który go odtwarzalnie wytwarza (data/wersja snapshotu)
 - ⏳ Ładowanie przy starcie, walidacja fail-fast (duplikaty identyfikatorów, współrzędne
   przez `GeoPoint`)
